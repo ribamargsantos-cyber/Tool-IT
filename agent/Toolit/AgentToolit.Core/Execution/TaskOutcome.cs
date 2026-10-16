@@ -7,6 +7,12 @@ public static class TaskResultStatus
     public const string Failed = "failed";
     public const string Rejected = "rejected";
     public const string Cancelled = "cancelled";
+
+    /// <summary>
+    /// SÓ interno do Agent (nunca enviado ao Manager): falha transitória (rede/Manager fora). O resultado é descartado,
+    /// a lease vence e <c>tasks:expire</c> recoloca a tarefa idempotente na fila (ADR-023, opção A; L49).
+    /// </summary>
+    public const string Transient = "transient";
 }
 
 /// <summary>
@@ -22,6 +28,8 @@ public sealed record TaskOutcome(string Status, int? ExitCode, string? Stdout, s
     public static TaskOutcome Failed(string error) => new(TaskResultStatus.Failed, null, null, null, error);
 
     public static TaskOutcome Rejected(string error) => new(TaskResultStatus.Rejected, null, null, null, error);
+
+    public static TaskOutcome TransientFailure(string error) => new(TaskResultStatus.Transient, null, null, null, error);
 
     public static TaskOutcome Cancelled(string? error = null) => new(TaskResultStatus.Cancelled, null, null, null, error);
 }
