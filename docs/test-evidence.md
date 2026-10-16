@@ -205,3 +205,9 @@ Executado em 2026-10-16, 09:12–09:27 e 13:40–13:50 (horário local, UTC−4;
 | `composer audit` | nenhuma vulnerabilidade |
 | `dotnet list <projeto> package --vulnerable --include-transitive --source https://api.nuget.org/v3/index.json` (Core, Collectors, AgentToolit, Tests) | nenhum pacote vulnerável |
 | `php vendor/bin/pint --test` (Manager e `tests/integration/transfers-smoke.php`) | passou |
+
+## RGS-8 — retomada/falha transitória (L49) — 2026-10-16
+**Status: NÃO EXECUTADO.** O ambiente de desenvolvimento desta entrega não tem `dotnet`, `php` nem Windows; nenhum teste foi rodado, então nada está marcado `[x]`.
+Testes novos (C#, `AgentToolit.Tests/TransferResumeTests.cs`): runner marca `ManagerUnavailableException`/timeout de rede como transitório; erro permanente continua `failed`; poller não envia resultado em falha transitória; envio retoma do `.part` e conclui com hash correto; hash divergente continua `failed` sem `.part`; `PartSweeper` apaga só `.part` antigo de nome estrito e pula `.part` aberto.
+A executar por quem tiver Windows/.NET: `dotnet test agent/Toolit/Toolit.sln` (contagem antes/depois a registrar aqui) e repetir o E2E de queda do Manager (`queda-manager.zip`).
+Manager (PHP): nenhuma alteração nesta entrega (ADR-023 A não exige); A2 (lease curta por progresso) não feito — depende do board.
