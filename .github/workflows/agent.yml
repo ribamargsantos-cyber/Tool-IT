@@ -1,0 +1,64 @@
+name: Agent (.NET, Windows)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: dotnet test (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-dotnet@v4.1.0
+        with:
+          dotnet-version: '8.0.x'
+      # Só o projeto de testes (e suas referências): o .vdproj (ToolitSetup) exige Visual Studio (L18) e fica fora do CI.
+      - run: dotnet test agent/Toolit/AgentToolit.Tests/AgentToolit.Tests.csproj --configuration Release --logger "trx;LogFileName=agent.trx"
+      - uses: actions/upload-artifact@v4.4.3
+        if: always()
+        with:
+          name: agent-test-results
+          path: agent/Toolit/AgentToolit.Tests/TestResults/*.trx
+          if-no-files-found: ignore
+
+  audit:
+    name: Auditoria NuGet (fonte pública)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-dotnet@v4.1.0
+        with:
+          dotnet-version: '8.0.x'
+      # Limiar: qualquer pacote vulnerável (direto ou transitivo, qualquer severidade) falha o job.
+      # `dotnet list` retorna 0 mesmo com achados; por isso o texto da saída é verificado. Por projeto (L18); fonte pública (L15).
+      - name: dotnet list package --vulnerable
+        shell: pwsh
+        run: |
+          $projects = @(
+            'agent/Toolit/AgentToolit.Core/AgentToolit.Core.csproj',
+            'agent/Toolit/AgentToolit.Collectors/AgentToolit.Collectors.csproj',
+            'agent/Toolit/Toolit/AgentToolit.csproj',
+            'agent/Toolit/AgentToolit.Tests/AgentToolit.Tests.csproj'
+          )
+          $failed = $false
+          foreach ($p in $projects) {
+            $out = dotnet list $p package --vulnerable --include-transitive --source https://api.nuget.org/v3/index.json 2>&1 | Out-String
+            Write-Host $out
+            if ($LASTEXITCODE -ne 0 -or $out -match 'has the following vulnerable packages' -or $out -match 'error|unable to load') {
+              Write-Host "::error::Falha ou pacote vulnerável em $p"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }

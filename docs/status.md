@@ -63,3 +63,6 @@ RBAC por grupo, auditoria encadeada, login + TOTP, API do Agent (enroll, heartbe
 
 ## Riscos abertos
 Ver [`known-limitations.md`](known-limitations.md).
+
+## CI (RGS-10)
+Workflows `manager.yml` e `agent.yml` criados (ver [`ci.md`](ci.md)). ⚠ **Não executados/validados** até o primeiro run no GitHub; perfil MySQL pendente.

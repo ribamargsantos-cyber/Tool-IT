@@ -1,0 +1,66 @@
+name: Manager (Laravel)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manager-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Pint + PHPUnit (SQLite) + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: manager
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: shivammathur/setup-php@2.31.1
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite, sqlite3, sodium, openssl
+          coverage: none
+      - uses: actions/setup-node@v4.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: manager/package-lock.json
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Pint (somente verificação)
+        run: vendor/bin/pint --test
+      - name: Testes PHP (SQLite em memória, ver phpunit.xml)
+        run: php artisan test
+      - run: npm ci
+      - run: npm run build
+      - name: Testes JS (upload fatiado)
+        run: node --test tests/js/transfer-upload.test.mjs
+
+  audit:
+    name: Auditoria de dependências (Composer + npm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: manager
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: shivammathur/setup-php@2.31.1
+        with:
+          php-version: '8.3'
+          coverage: none
+      - uses: actions/setup-node@v4.1.0
+        with:
+          node-version: '22'
+      # Limiar: qualquer advisory no composer.lock (inclui dev) falha o job.
+      - run: composer audit --locked
+      # Limiar: severidade high ou critical falha o job (moderate/low só aparecem no log).
+      - run: npm audit --audit-level=high
