@@ -17,4 +17,4 @@ Workflows em `.github/workflows/`: `manager.yml` e `agent.yml`. Disparo: `push` 
 ## Lacunas
 - **Perfil MySQL não incluído:** `manager/phpunit.xml` força SQLite (`force="true"`); rodar a suíte em MySQL exige parametrizar o phpunit.xml e um service container — pendente (task 003).
 - O E2E do Agent (`TOOLIT_E2E_MANAGER`) não roda no CI (fica ignorado).
-- Os workflows ainda não tinham sido executados no GitHub quando este arquivo foi escrito; ver o PR para o estado dos runs. Não há `php`/`dotnet` no ambiente do autor: nada foi validado localmente.
+- **Run do PR (2026-10-16):** Manager (test + audit) e Agent/audit **verdes**; Agent/test **vermelho legítimo**: 277 aprovados, 1 falha — `FileHandlersTests.Registry_excludes_a_root_writable_by_normal_users` (`Assert.Empty` com coleção não vazia). Hipótese não verificada: o runner do GitHub executa como Administrador, o que muda as ACLs que o teste assume. Pendente: investigar o teste (novo item a priorizar). Links: https://github.com/ribamargsantos-cyber/Tool-IT/actions/runs/38955949690 (Agent), https://github.com/ribamargsantos-cyber/Tool-IT/actions/runs/38955949737 (Manager).
