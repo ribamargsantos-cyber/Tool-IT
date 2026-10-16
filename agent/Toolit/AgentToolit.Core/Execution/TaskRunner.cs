@@ -5,8 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace AgentToolit.Core.Execution;
 
-/// <summary>Resultado pronto para envio + se o host deve ser parado para reinício depois do envio.</summary>
-public sealed record TaskRun(TaskResultRequest Result, bool RestartAgent);
+/// <summary>
+/// Resultado pronto para envio + se o host deve ser parado para reinício depois do envio.
+/// <paramref name="Transient"/>: falha transitória — o resultado NÃO deve ser enviado (a tentativa é abandonada para
+/// o Manager recolocar a tarefa na fila quando a lease vencer; ADR-023).
+/// </summary>
+public sealed record TaskRun(TaskResultRequest Result, bool RestartAgent, bool Transient = false);
 
 /// <summary>
 /// Executa uma tarefa por vez: valida tipo/parâmetros contra o catálogo local (fora dele → rejected sem executar),
@@ -50,7 +54,8 @@ public sealed class TaskRunner(
             logger.LogInformation("Tarefa {TaskId} ({Type}) terminou: {Status}{Error}", a.TaskId, a.Type, outcome.Status,
                 error is null ? "" : " - " + error);
 
-            return new TaskRun(result, outcome.RestartAgent && outcome.Status == TaskResultStatus.Completed);
+            return new TaskRun(result, outcome.RestartAgent && outcome.Status == TaskResultStatus.Completed,
+                outcome.Status == TaskResultStatus.Transient);
         }
         finally
         {
@@ -112,6 +117,20 @@ public sealed class TaskRunner(
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
         {
             return TaskOutcome.Failed("timeout");
+        }
+        catch (ManagerUnavailableException ex)
+        {
+            // Rede/5xx/429: o que o handler já gravou (.part) é mantido; não reporta failed (seria final no Manager).
+            logger.LogWarning("Tarefa {TaskId} ({Type}) interrompida por falha transitória: {Reason}", a.TaskId, a.Type, ex.Message);
+
+            return TaskOutcome.TransientFailure(ex.Message);
+        }
+        catch (OperationCanceledException ex) when (a.Type is "file.send" or "file.fetch")
+        {
+            // Nenhum token foi cancelado: é o timeout de uma chamada HttpClient ao Manager (transitório).
+            logger.LogWarning("Tarefa {TaskId} ({Type}) interrompida por timeout de rede: {Reason}", a.TaskId, a.Type, ex.Message);
+
+            return TaskOutcome.TransientFailure("network timeout");
         }
         catch (Exception ex)
         {

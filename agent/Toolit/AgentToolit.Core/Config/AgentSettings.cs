@@ -43,6 +43,15 @@ public sealed class AgentSettings
         set => _transferFetchOnlyRoots = value ?? [];
     }
 
+    /// <summary>Idade mínima (horas) para um <c>.toolit-{id}.part</c> órfão ser apagado pela varredura (ADR-023).</summary>
+    public int TransferPartRetentionHours
+    {
+        get => _transferPartRetentionHours;
+        set => _transferPartRetentionHours = Math.Clamp(value, 1, 24 * 30);
+    }
+
+    private int _transferPartRetentionHours = 24;
+
     private List<string> _transferRoots = [ProgramDataToolit("Inbox"), ProgramDataToolit("Outbox")];
 
     private List<string> _transferFetchOnlyRoots = [ProgramDataToolit("Logs")];

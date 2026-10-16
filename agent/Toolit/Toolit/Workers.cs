@@ -2,6 +2,7 @@ using AgentToolit.Collectors;
 using AgentToolit.Core.Config;
 using AgentToolit.Core.Execution;
 using AgentToolit.Core.Services;
+using AgentToolit.Core.Transfers;
 
 namespace AgentToolit;
 
@@ -53,6 +54,18 @@ public sealed class TaskWorker(TaskPoller poller, TaskCoordinator coordinator, T
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
         Loop.RunAsync(poller.TickAsync, time, logger, "tasks", stoppingToken, coordinator.WaitAsync);
+}
+
+/// <summary>Varredura de .part órfão (ADR-023): na subida e a cada 6 h.</summary>
+public sealed class PartSweepWorker(PartSweeper sweeper, TimeProvider time, ILogger<PartSweepWorker> logger) : BackgroundService
+{
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        Loop.RunAsync(ct =>
+        {
+            sweeper.Sweep();
+
+            return Task.FromResult(TimeSpan.FromHours(6));
+        }, time, logger, "part-sweep", stoppingToken);
 }
 
 public sealed class SenderWorker(SenderService service, TimeProvider time, ILogger<SenderWorker> logger) : BackgroundService

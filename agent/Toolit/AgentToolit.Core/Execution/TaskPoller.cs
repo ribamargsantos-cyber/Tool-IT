@@ -67,6 +67,14 @@ public sealed class TaskPoller(
             logger.LogInformation("Tarefa {TaskId} recebida: {Type} (risco {Risk}).", task.TaskId, task.Type, task.Risk);
             var run = await runner.ExecuteAsync(task, ct);
 
+            if (run.Transient)
+            {
+                // ADR-023 (A): não reporta; a lease vence, o Manager recoloca e a mesma tarefa retoma do .part.
+                logger.LogWarning("Tarefa {TaskId}: falha transitória; tentativa abandonada para o Manager recolocar na fila.", task.TaskId);
+
+                return _backoff.Next();
+            }
+
             // Guardado antes do envio: se a rede falhar, o próximo ciclo reenvia em vez de executar de novo.
             _pending = new PendingResult(task.TaskId, run.Result, run.RestartAgent);
             await DeliverAsync(_pending, ct);
