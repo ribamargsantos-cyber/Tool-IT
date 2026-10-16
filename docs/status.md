@@ -50,6 +50,7 @@ RBAC por grupo, auditoria encadeada, login + TOTP, API do Agent (enroll, heartbe
 | Upload pelo navegador em chunks de 1 MiB, retomável; `TransferService`, estados, auditoria | ✔ | E2E por cliente HTTP real (cookies + CSRF) · ⚠ aba Arquivos não vista em navegador real (L50) |
 | API do Agent (metadados, chunks, `begin`/`complete`, limite `agent-transfer`) | ✔ | E2E + `tests/integration/transfers-smoke.php` (24/24; 130 req sem 429) |
 | Agent: `file.send` / `file.fetch` (handle, `.part`, SHA-256, veto local, junction recusada, revogação no meio) | ✔ handlers reais em processo de teste contra Manager real | ⚠ executável do serviço só provou a falha fechada (sem Administrador as raízes são excluídas) — L43 |
+| Retomada | ✔ upload do navegador; Agent morto → tarefa recolocada → continua do `.part` | ❌ após queda do Manager/rede a transferência falha e o `.part` fica órfão (L49) |
 | Retomada | ✔ upload do navegador; Agent morto → tarefa recolocada → continua do `.part` | ⚠ L49: código do Agent implementado (falha transitória não reportada → recolocação pela lease; varredura de `.part` órfão) — **testes não executados** (ver `test-evidence.md`); Agents antigos mantêm o comportamento anterior |
 | Retenção (`transfers:prune`) | ✔ | E2E com `updated_at` recuado no banco de teste |
 | Serviço real como SYSTEM, ACL restrita elevada, UNC, antivírus | ❌ não validado | L43 |
@@ -63,3 +64,6 @@ RBAC por grupo, auditoria encadeada, login + TOTP, API do Agent (enroll, heartbe
 
 ## Riscos abertos
 Ver [`known-limitations.md`](known-limitations.md).
+
+## CI (RGS-10)
+Workflows `manager.yml` e `agent.yml` criados (ver [`ci.md`](ci.md)). Run no PR: Manager e auditorias verdes; `dotnet test` do Agent com 1 falha legítima (ver `ci.md`); perfil MySQL pendente.
