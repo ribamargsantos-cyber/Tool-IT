@@ -61,3 +61,6 @@ Sem certificado Authenticode: usar assinatura do manifesto + documentar aviso do
 - [x] `AgentToolit.exe service install|uninstall` (testado por unidade) e `Install-ToolitAgent.ps1` como alternativa.
 - [ ] **Instalar de verdade como Administrador** (UI e `/qn`), reiniciar, atualizar (aumentar `ProductVersion`), desinstalar, rollback — registrar evidências.
 - [ ] Assinatura do MSI/executável (Authenticode) · [ ] atualização assinada do Agent (manifesto + rollback) · [ ] GPO (`.mst`) documentada e testada · [ ] anéis 5 → intermediário → frota · [ ] versão do MSI automatizada · [ ] entrega do token sem linha de comando (L16).
+
+## Design proposto (RGS-7, 2026-10-16) — não implementado
+`docs/superpowers/specs/2026-10-16-atualizacao-assinada-design.md` + ADR-026/027/028 (propostas, aguardam aprovação do board). Nenhum item deste checklist foi marcado: é só design.

@@ -149,3 +149,30 @@ Tudo passa pelas mesmas policies/`AccessResolver` e gera auditoria (ator, alvo, 
 3. **L35:** autoriza corrigir agora (mudança em código que roda como SYSTEM; exige validação em Windows com Administrador) ou aceita o risco até a task 013?
 4. **Retenção de `.part` órfão:** 24 h está bom?
 Sem resposta, a implementação seguirá as recomendações em negrito, exceto A2 (que fica desligado).
+=======
+
+## ADR-026 — Atualização do Agent: manifesto assinado ECDSA P-256 com chave offline (PROPOSTA — não aprovada)
+**Status:** proposta (RGS-7). Detalha e substitui, se aprovada, o esboço da ADR-012. Spec: `docs/superpowers/specs/2026-10-16-atualizacao-assinada-design.md`.
+**Contexto:** T8 — um Manager comprometido não pode conseguir execução como SYSTEM nos endpoints. Não há updater nem `/updates/check` no Manager.
+**Alternativas:** (a) só HTTPS + hash informado pelo servidor (rejeitada: servidor comprometido controla ambos); (b) Authenticode como única verificação (rejeitada: depende de certificado ainda inexistente, L17, e de `WinVerifyTrust` sem pin de editor); (c) **assinatura própria do manifesto, ECDSA P-256/SHA-256, chave privada offline, pública embutida (2 chaves: current/next)**, com Authenticode como camada adicional; (d) Ed25519 (rejeitada por ora: ausente na BCL do .NET 8, L2).
+**Decisão proposta:** (c). String assinada em linhas (domínio `toolit-update-v1`, versão, `release_seq` monotônico, sha256, size, min_protocol, min_from_version, issued/expires, revoked_versions, key_id), vetor compartilhado PHP/C#; anti-downgrade por `release_seq` persistido; pacote servido só pelo Manager (sem URL arbitrária, T15).
+**Consequências:** custódia da chave de release vira ponto crítico (decisão do board); comprometimento da chave exige reinstalação por canal confiável (MSI/GPO); o Manager pode atrasar/negar atualizações (disponibilidade), não forjá-las.
+
+## ADR-027 — Aplicação da atualização: ZIP + ToolitUpdater.exe separado, rollback e anéis (PROPOSTA — não aprovada)
+**Status:** proposta (RGS-7).
+**Contexto:** o serviço não pode substituir o próprio executável em uso; o MSI atual (ADR-017) tem `ProductVersion` fixo (L19), não é assinado (L17) e depende de Visual Studio (L18). Serviço nunca instalado de fato (L8).
+**Alternativas:** (A) **ZIP verificado + updater estável em processo separado, troca atômica de diretório, healthcheck e rollback**; (B) versões lado a lado com troca do `ImagePath` via `sc config`; (C) `msiexec` do MSI novo (rollback nativo só cobre a instalação; downgrade exige desinstalar; acopla a L17/L18/L19).
+**Decisão proposta:** (A), com (B) como contingência se o updater não sobreviver à parada do serviço em VM. Anéis `canary`/`pilot`/`stable` por endpoint, rollout com pausa automática por taxa de falha, `stable` com segunda pessoa; MSI só para instalação inicial/recuperação/GPO.
+**Consequências:** arquivos fora da tabela `File` do MSI (repair/uninstall precisam de tratamento); updater precisa se autoatualizar; sobrevivência do updater e recuperação pelo SCM são **suposições a validar em VM**.
+
+## ADR-028 — Token de enrollment fora da linha de comando (PROPOSTA — não aprovada)
+**Status:** proposta (RGS-7). Trata L16.
+**Decisão proposta:** o MSI aceita `ENROLLTOKENFILE` (arquivo com ACL restrita, token de TTL curto/uso limitado); a ação personalizada entrega o token ao processo `enroll` por variável de ambiente do processo filho (já suportado) e remove o arquivo; `ENROLLTOKEN` por linha de comando fica deprecado. Alternativa para o board: enrollment sem token com aprovação manual (ADR-005 prevê aprovação opcional).
+**Consequências:** requer teste do MSI em Windows; GPO exige compartilhamento com ACL para contas de computador.
+
+## ADR-029 — Inventário de arquivos: política efetiva ∩ veto local, metadados apenas, aplicação no `complete` (PROPOSTA — não aprovada)
+**Status:** proposta (RGS-7). Spec: `docs/superpowers/specs/2026-10-16-inventario-de-arquivos-design.md`.
+**Contexto:** a task 006 pede inventário de metadados em diretórios autorizados, com exclusões, profundidade, hash opcional e cancelamento. O serviço roda como SYSTEM (acesso a todos os perfis); nomes de arquivo podem ser dados pessoais (LGPD).
+**Decisão proposta:** (1) reutilizar `PathGuard`/`forbiddenPolicyDirectory` da 009 para validar raízes e confinar a varredura; (2) o Agent busca a política por consulta assinada e aplica **política ∩ `FileInventoryRoots` (padrão vazio = desligado) ∩ exclusões fixas no código** (perfis, AppData, credenciais, navegadores); (3) varredura BFS manual, sem seguir reparse points, orçamentos de tempo/itens/hash, prioridade de fundo; (4) só metadados; hash apenas por regra explícita, lido localmente; (5) resultado enviado em lotes idempotentes e **aplicado só no `complete`**; remoção exige raiz completa e `missed_count ≥ 2` (evita L26); (6) tarefa `inventory.files` sem parâmetros, risco `low` (a confirmar), permissão `files.inventory_view`.
+**Consequências:** novo volume de dados (≤ 50 000 itens/endpoint, retenção 30/90 d); finalidade e RIPD são pré-requisito (board); custo no endpoint e comportamento como SYSTEM não validados até haver VM (L8, L9).
+
