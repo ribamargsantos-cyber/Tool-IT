@@ -137,6 +137,8 @@ builder.Services.AddHostedService<MetricsWorker>();
 builder.Services.AddHostedService<InventoryWorker>();
 builder.Services.AddHostedService<SenderWorker>();
 builder.Services.AddHostedService<TaskWorker>();
+builder.Services.AddSingleton<PartSweeper>();
+builder.Services.AddHostedService<PartSweepWorker>();
 
 var host = builder.Build();
 host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AgentToolit")

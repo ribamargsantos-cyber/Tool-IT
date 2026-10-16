@@ -167,7 +167,7 @@ A tarefa traz só `params.transfer_id`; caminho e metadados vêm destas rotas, t
 - Erros: transferência de outro endpoint ou inexistente → `404 request.not_found`; estado ou direção inválidos → `409 transfer.conflict`; `n` fora do intervalo ou tamanho de chunk errado → `422 transfer.invalid`.
 - **Chame `complete` ANTES de enviar o `result` da tarefa.** Depois que a tarefa sai de `running`, um novo `complete` recebe `409`.
 - Limite próprio `agent-transfer`, por instalação: 600 req/min (`toolit.transfers.rate_limit_per_minute`, env `TOOLIT_TRANSFER_RATE_LIMIT`). Não consome o orçamento de 120 req/min das demais rotas.
-- Retomada: no envio o Agent continua do tamanho do `.toolit-{id}.part` (múltiplo de `chunk_size`); na recuperação usa `received_chunks`. Só acontece quando a **mesma** tarefa volta a ser entregue (lease vencida → `tasks:expire` recoloca a idempotente na fila). Uma falha de rede durante a transferência faz o Agent reportar `failed`, e o Manager encerra tarefa e transferência sem nova tentativa (L49).
+- Retomada: no envio o Agent continua do tamanho do `.toolit-{id}.part` (múltiplo de `chunk_size`); na recuperação usa `received_chunks`. Só acontece quando a **mesma** tarefa volta a ser entregue (lease vencida → `tasks:expire` recoloca a idempotente na fila). Agent novo: falha de rede/5xx/timeout durante `file.*` NÃO é reportada (resultado descartado); a lease vence e o Manager recoloca a tarefa idempotente (ADR-023 A; contrato HTTP inalterado). Agent antigo ainda reporta `failed` e o Manager encerra sem nova tentativa (L49).
 - Verificado em 2026-10-16 contra Manager real (`docs/test-evidence.md` §"Transferência de arquivos — E2E"): handlers reais em processo e `tests/integration/transfers-smoke.php` (24/24).
 
 ### POST /keys/rotate

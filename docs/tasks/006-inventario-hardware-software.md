@@ -56,3 +56,6 @@ Variação entre versões do Windows; ARM64 sem testes (documentar).
 - [ ] **Política de inventário de arquivos** (diretórios autorizados, exclusões, profundidade, hash opcional, cancelamento) — não iniciada - [x] Histórico de mudanças (2026-10-15): diff de sistema/hardware/periféricos/rede e nomes de software em `inventory_snapshots.changes` (`App\Support\Inventory\InventoryDiff`) + aba **Histórico** no endpoint (software e rede só com `inventory.view_sensitive`). Plano: `docs/superpowers/plans/2026-10-15-historico-de-inventario.md`
 - [ ] Validar em Windows 10 e ARM64
 - ⚠ **Desvio da regra** "item não visto em 2 coletas → `removed_at`": o Manager marca `removed_at` já na primeira coleta **completa** (não truncada) sem o item. Uma coleta parcial por erro de leitura do Registro pode gerar remoção + reaparecimento falsos (aparecem no histórico). Ver L26.
+
+## Design proposto da política de arquivos (RGS-7, 2026-10-16) — não implementado
+`docs/superpowers/specs/2026-10-16-inventario-de-arquivos-design.md` + ADR-029 (proposta, aguarda finalidade/RIPD e aprovação do board). Item "Política de inventário de arquivos" continua **não iniciado** no checklist.

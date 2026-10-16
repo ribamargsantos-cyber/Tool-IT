@@ -53,7 +53,7 @@ Evidências: `docs/test-evidence.md` §"Transferência de arquivos — E2E (2026
 - [x] Sem execução automática — nenhuma tarefa/rota executa arquivo; extensões executáveis sempre bloqueadas (tela, criação, revalidação e Agent)
 - [x] Operador sem permissão recebe 403 (Auditor/Suporte no envio) e fora do escopo 404 (Operador do grupo B) — testes + E2E
 - [x] Retomada comprovada — upload do navegador (status + `missing_chunks`) e Agent morto no meio (tentativa #2 continuou do chunk 6, hash igual; lease vencida por atalho no banco de teste)
-- [ ] Retomada após **queda do Manager/rede** — não acontece: a transferência falha e o `.part` fica órfão (achado do E2E, L49)
+- [ ] Retomada após **queda do Manager/rede** (L49): implementada no Agent (ADR-023 A: falha transitória não reportada, lease vence e a tarefa é recolocada; `PartSweeper` limpa `.part` órfão > 24 h) — **falta executar** a suíte C# e repetir o E2E "queda do Manager"
 - [x] Retenção comprovada — `transfers:prune` (com `updated_at` recuado no banco de teste): blobs apagados, metadados com `purged_at`, download passa a 409
 - [ ] UNC real e antivírus real interferindo — não validados (L43)
 

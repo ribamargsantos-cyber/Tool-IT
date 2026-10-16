@@ -10,9 +10,10 @@ namespace AgentToolit.Core.Execution.Handlers;
 /// <summary>
 /// Parte comum de file.send / file.fetch: falha fechada sem normalização Unicode, raízes locais, leitura e conferência
 /// dos metadados (<c>transfer_id</c>, endpoint, direção, chunk) e tradução das respostas do Manager:
-/// 409 → cancelled (a tarefa já não está em execução lá), outros 4xx → failed; rede/5xx sobem (o runner registra
-/// failed e o Manager trata isso como final: NÃO há nova tentativa e o .part fica órfão — limitação conhecida L49;
-/// a retomada só ocorre quando a tentativa some sem resultado, por lease vencida). Cancelamento → cancelled.
+/// 409 → cancelled (a tarefa já não está em execução lá), outros 4xx → failed; rede/5xx/timeout de HttpClient sobem
+/// (ManagerUnavailableException / OperationCanceledException): o runner os trata como falha TRANSITÓRIA, não reporta
+/// resultado, e o Manager recoloca a tarefa quando a lease vence (ADR-023, L49); o .part é mantido e a retomada
+/// continua dele. .part que ficar órfão é removido por <see cref="PartSweeper"/>. Cancelamento → cancelled.
 /// Logs: só o id da transferência e o nome do arquivo (nunca o caminho completo vindo do Manager).
 /// </summary>
 public abstract class TransferHandlerBase(ITransferApi api, AgentSettings settings, TimeProvider time, AgentRuntime runtime, TransferRootRegistry rootRegistry, ILogger logger)
